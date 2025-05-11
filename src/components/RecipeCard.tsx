@@ -1,0 +1,146 @@
+
+import React, { useState } from "react";
+import { Recipe } from "@/types/recipe";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import speechService from "@/services/speechService";
+import { Book } from "lucide-react";
+
+interface RecipeCardProps {
+  recipe: Recipe;
+}
+
+const RecipeCard: React.FC<RecipeCardProps> = ({ recipe }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+
+  const handleSpeakInstructions = () => {
+    if (isSpeaking) {
+      speechService.stop();
+      setIsSpeaking(false);
+    } else {
+      const textToRead = recipe.instructions.join(". ");
+      speechService.speak(textToRead);
+      setIsSpeaking(true);
+      
+      // Set up an interval to check if speaking is done
+      const checkInterval = setInterval(() => {
+        if (!speechService.isSpeaking()) {
+          setIsSpeaking(false);
+          clearInterval(checkInterval);
+        }
+      }, 1000);
+    }
+  };
+
+  return (
+    <>
+      <Card 
+        className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer" 
+        onClick={() => setIsOpen(true)}
+      >
+        <div 
+          className="h-48 bg-cover bg-center" 
+          style={{ 
+            backgroundImage: `url(${recipe.imageUrl || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"})`
+          }}
+        />
+        <CardContent className="p-4">
+          <h3 className="text-lg font-medium line-clamp-2">{recipe.title}</h3>
+          <div className="flex justify-between items-center mt-2 text-sm text-gray-500">
+            <span>{recipe.preparationTime}</span>
+            <span>{recipe.servings} servings</span>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold">{recipe.title}</DialogTitle>
+          </DialogHeader>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <img 
+                src={recipe.imageUrl || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} 
+                alt={recipe.title} 
+                className="w-full h-64 object-cover rounded-md"
+              />
+              
+              <div className="mt-4 flex flex-wrap gap-2">
+                <div className="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-sm">
+                  {recipe.preparationTime}
+                </div>
+                <div className="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-sm">
+                  {recipe.servings} servings
+                </div>
+              </div>
+              
+              {recipe.nutritionalInfo && (
+                <div className="mt-4">
+                  <h4 className="font-medium mb-2">Nutritional Information</h4>
+                  <div className="grid grid-cols-4 gap-2 text-sm">
+                    <div className="bg-gray-100 p-2 rounded text-center">
+                      <div className="font-medium">{recipe.nutritionalInfo.calories}</div>
+                      <div className="text-gray-600">Calories</div>
+                    </div>
+                    <div className="bg-gray-100 p-2 rounded text-center">
+                      <div className="font-medium">{recipe.nutritionalInfo.protein}g</div>
+                      <div className="text-gray-600">Protein</div>
+                    </div>
+                    <div className="bg-gray-100 p-2 rounded text-center">
+                      <div className="font-medium">{recipe.nutritionalInfo.carbs}g</div>
+                      <div className="text-gray-600">Carbs</div>
+                    </div>
+                    <div className="bg-gray-100 p-2 rounded text-center">
+                      <div className="font-medium">{recipe.nutritionalInfo.fat}g</div>
+                      <div className="text-gray-600">Fat</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <div>
+              <div className="mb-4">
+                <h4 className="font-medium mb-2">Ingredients</h4>
+                <ul className="list-disc pl-5 space-y-1">
+                  {recipe.ingredients.map((ingredient, index) => (
+                    <li key={index}>{ingredient}</li>
+                  ))}
+                </ul>
+              </div>
+              
+              <div>
+                <div className="flex justify-between items-center">
+                  <h4 className="font-medium mb-2">Instructions</h4>
+                  <Button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSpeakInstructions();
+                    }}
+                    variant="outline"
+                    className="flex items-center gap-1"
+                    size="sm"
+                  >
+                    <Book size={16} />
+                    {isSpeaking ? "Stop Reading" : "Read Aloud"}
+                  </Button>
+                </div>
+                <ol className="list-decimal pl-5 space-y-2">
+                  {recipe.instructions.map((step, index) => (
+                    <li key={index} className="pl-1">{step}</li>
+                  ))}
+                </ol>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+};
+
+export default RecipeCard;
