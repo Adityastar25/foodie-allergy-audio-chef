@@ -1,4 +1,3 @@
-
 import { RecipeRequest, GeminiResponse, Recipe } from "../types/recipe";
 
 // This would be replaced with a proper API key
@@ -169,7 +168,6 @@ const createMockRecipe = (request: RecipeRequest, index: number) => {
         ]
       }
     },
-    // Add more cuisines with dietary preference variations
     'chinese': {
       prefix: 'Chinese',
       dishes: {
@@ -225,219 +223,147 @@ const createMockRecipe = (request: RecipeRequest, index: number) => {
         ]
       }
     },
-    // Add more cuisines with similar dietary preference variations
-  };
-  
-  // Default to Italian if the cuisine isn't specifically defined
-  let cuisineInfo = cuisineTypes['italian']; 
-  const lowerCuisine = request.cuisineType.toLowerCase();
-  
-  // Find matching cuisine
-  for (const key in cuisineTypes) {
-    if (lowerCuisine.includes(key)) {
-      cuisineInfo = cuisineTypes[key];
-      break;
-    }
-  }
-  
-  // Determine which type of dishes to use based on dietary preference
-  let dishType: string = 'standard';
-  if (dietaryPreference && dietaryPreference !== 'none' && 
-      cuisineInfo.dishes[dietaryPreference as keyof typeof cuisineInfo.dishes]) {
-    dishType = dietaryPreference;
-  }
-  
-  // Select corresponding dish and image from the appropriate dietary category
-  const dishes = cuisineInfo.dishes[dishType as keyof typeof cuisineInfo.dishes] || cuisineInfo.dishes.standard;
-  const images = cuisineInfo.images[dishType as keyof typeof cuisineInfo.images] || cuisineInfo.images.standard;
-  
-  const dishIndex = index % dishes.length;
-  const randomDish = dishes[dishIndex];
-  const matchingImage = images[dishIndex];
-  
-  // Generate a title with appropriate prefixes
-  let title = `${cuisineInfo.prefix} ${randomDish}`;
-  
-  // Use user-provided ingredients to create custom ingredient list
-  const availableIngredients = request.ingredients.length > 0 
-    ? [...request.ingredients] // Make a copy to avoid modifying the original
-    : ["ingredients"];
-  
-  // Filter out any ingredients that don't match dietary preferences
-  const filteredIngredients = filterIngredientsForDiet(availableIngredients, dietaryPreference);
-  
-  // Add some basic ingredients that fit the dietary preference
-  const commonIngredients = getCommonIngredientsForDiet(dietaryPreference);
-  
-  const mockIngredients = [
-    ...filteredIngredients.slice(0, Math.min(filteredIngredients.length, 5)),
-    ...commonIngredients
-  ];
-  
-  // Generate instructions that actually reference the ingredients
-  const mockInstructions = generateInstructions(mockIngredients, cuisineInfo.prefix, randomDish, dietaryPreference);
-  
-  return {
-    title,
-    ingredients: mockIngredients,
-    instructions: mockInstructions,
-    imageUrl: matchingImage,
-    dietaryPreference: dietaryPreference,
-    preparationTime: `${Math.floor(Math.random() * 30) + 15} minutes`,
-    servings: Math.floor(Math.random() * 4) + 2,
-    nutritionalInfo: {
-      calories: Math.floor(Math.random() * 500) + 200,
-      protein: Math.floor(Math.random() * 30) + 10,
-      carbs: Math.floor(Math.random() * 40) + 20,
-      fat: Math.floor(Math.random() * 20) + 5
-    }
-  };
-};
-
-// Filter ingredients based on dietary preferences
-const filterIngredientsForDiet = (ingredients: string[], dietaryPreference?: string): string[] => {
-  if (!dietaryPreference || dietaryPreference === 'none') {
-    return ingredients;
-  }
-  
-  const nonVegetarianIngredients = ['chicken', 'beef', 'pork', 'lamb', 'bacon', 'ham', 'turkey', 'veal', 'sausage', 'salami', 'pepperoni'];
-  const dairyIngredients = ['milk', 'cheese', 'butter', 'cream', 'yogurt', 'ice cream', 'ghee', 'paneer', 'cottage cheese'];
-  const grainsToAvoid = ['wheat', 'barley', 'rye', 'oats', 'bread', 'pasta', 'flour', 'white rice'];
-  
-  let filteredList = [...ingredients];
-  
-  switch(dietaryPreference) {
-    case 'vegetarian':
-      filteredList = filteredList.filter(ingredient => 
-        !nonVegetarianIngredients.some(meat => ingredient.toLowerCase().includes(meat)));
-      break;
-    
-    case 'vegan':
-      filteredList = filteredList.filter(ingredient => 
-        !nonVegetarianIngredients.some(meat => ingredient.toLowerCase().includes(meat)) &&
-        !dairyIngredients.some(dairy => ingredient.toLowerCase().includes(dairy)));
-      break;
-      
-    case 'keto':
-      filteredList = filteredList.filter(ingredient => 
-        !ingredient.toLowerCase().includes('sugar') && 
-        !ingredient.toLowerCase().includes('honey') &&
-        !ingredient.toLowerCase().includes('maple syrup') &&
-        !grainsToAvoid.some(grain => ingredient.toLowerCase().includes(grain)));
-      break;
-      
-    case 'paleo':
-      filteredList = filteredList.filter(ingredient => 
-        !ingredient.toLowerCase().includes('dairy') && 
-        !ingredient.toLowerCase().includes('sugar') &&
-        !grainsToAvoid.some(grain => ingredient.toLowerCase().includes(grain)));
-      break;
-      
-    case 'gluten-free':
-      filteredList = filteredList.filter(ingredient => 
-        !grainsToAvoid.some(grain => ingredient.toLowerCase().includes(grain)));
-      break;
-  }
-  
-  return filteredList;
-};
-
-// Get common ingredients based on dietary preference
-const getCommonIngredientsForDiet = (dietaryPreference?: string): string[] => {
-  const commonBase = ['salt', 'black pepper', 'olive oil', 'garlic', 'onion'];
-  
-  switch(dietaryPreference) {
-    case 'vegetarian':
-      return [...commonBase, 'bell peppers', 'broccoli', 'eggs', 'cheese'];
-    case 'vegan':
-      return [...commonBase, 'bell peppers', 'broccoli', 'tofu', 'nutritional yeast', 'plant milk'];
-    case 'keto':
-      return [...commonBase, 'avocado', 'spinach', 'butter', 'heavy cream', 'bacon'];
-    case 'paleo':
-      return [...commonBase, 'sweet potatoes', 'avocado', 'almond flour', 'coconut oil', 'eggs'];
-    case 'gluten-free':
-      return [...commonBase, 'gluten-free flour', 'rice', 'quinoa', 'corn starch', 'potatoes'];
-    default:
-      return commonBase;
-  }
-};
-
-// Generate more unique and relevant instructions for each recipe
-const generateInstructions = (ingredients: string[], cuisine: string, dish: string, dietaryPreference?: string): string[] => {
-  const mainIngredients = ingredients.slice(0, 3);
-  const secondaryIngredients = ingredients.slice(3, 6);
-  const seasonings = ingredients.filter(ing => ['salt', 'pepper', 'herbs', 'spice'].some(s => ing.toLowerCase().includes(s)));
-  
-  // Create more diverse instructions based on cuisine and dish type
-  if (dish.toLowerCase().includes('stir')) {
-    return [
-      `Prepare all ingredients: dice ${mainIngredients.join(', ')} into bite-sized pieces.`,
-      `Heat a wok or large pan over high heat. Add oil and wait until it's very hot.`,
-      `Add ${ingredients.find(i => i.includes('garlic')) || 'garlic'} and ${ingredients.find(i => i.includes('onion')) || 'onions'} to the wok and stir-fry for 30 seconds until fragrant.`,
-      `Add ${mainIngredients[0]} and ${mainIngredients[1] || 'other main ingredients'} to the wok. Stir-fry for about 3-4 minutes.`,
-      `Add ${secondaryIngredients[0] || 'vegetables'} and continue to stir-fry for 2 minutes.`,
-      `Season with ${seasonings.join(', ') || 'salt and pepper'} to taste.`,
-      `Pour in any sauce ingredients and toss to combine. Cook for another minute.`,
-      `Plate the stir-fry and garnish with fresh herbs if available.`,
-      `Serve hot with rice or noodles on the side (unless making a keto or paleo version).`
-    ];
-  } else if (dish.toLowerCase().includes('soup') || dish.toLowerCase().includes('stew')) {
-    return [
-      `Prep work: chop ${mainIngredients.join(', ')} into even pieces.`,
-      `Heat oil in a large pot over medium heat.`,
-      `Add ${ingredients.find(i => i.includes('onion')) || 'onions'} and cook until translucent, about 3-4 minutes.`,
-      `Add ${ingredients.find(i => i.includes('garlic')) || 'garlic'} and cook for another 30 seconds.`,
-      `Add ${mainIngredients[0]} and cook for 2 minutes, stirring occasionally.`,
-      `Pour in broth or water and bring to a simmer.`,
-      `Add ${secondaryIngredients.join(', ') || 'remaining ingredients'} to the pot.`,
-      `Season with ${seasonings.join(', ') || 'salt and pepper'} to taste.`,
-      `Cover and simmer for 15-20 minutes, until all ingredients are tender.`,
-      `Adjust seasoning if needed and serve hot in bowls.`
-    ];
-  } else if (dish.toLowerCase().includes('salad')) {
-    return [
-      `Wash and dry all produce thoroughly.`,
-      `Chop ${mainIngredients.join(', ')} into bite-sized pieces.`,
-      `Prepare any proteins included in the recipe.`,
-      `In a large bowl, combine ${mainIngredients.join(', ')}.`,
-      `In a small bowl, whisk together ingredients for the dressing.`,
-      `Add ${secondaryIngredients.join(', ') || 'remaining ingredients'} to the salad bowl.`,
-      `Pour the dressing over the salad and toss gently to combine.`,
-      `Season with ${seasonings.join(', ') || 'salt and pepper'} to taste.`,
-      `Let sit for 5 minutes to allow flavors to meld.`,
-      `Serve immediately or refrigerate until ready to eat.`
-    ];
-  } else if (dish.toLowerCase().includes('pasta') || dish.toLowerCase().includes('noodle')) {
-    const pastaType = dietaryPreference === 'keto' ? 'zucchini noodles' : 
-                     dietaryPreference === 'paleo' ? 'sweet potato noodles' : 
-                     dietaryPreference === 'gluten-free' ? 'gluten-free pasta' :
-                     'pasta';
-    
-    return [
-      `Bring a large pot of salted water to a boil.`,
-      `Cook ${pastaType} according to package instructions until al dente.`,
-      `Meanwhile, heat oil in a large skillet over medium heat.`,
-      `Add ${ingredients.find(i => i.includes('onion')) || 'onions'} and ${ingredients.find(i => i.includes('garlic')) || 'garlic'}, cook until fragrant.`,
-      `Add ${mainIngredients.filter(i => !i.includes('pasta')).join(', ') || 'main ingredients'} to the pan and cook for 5-7 minutes.`,
-      `Season with ${seasonings.join(', ') || 'salt and pepper'} to taste.`,
-      `Drain the ${pastaType}, reserving 1/4 cup of cooking water.`,
-      `Add the ${pastaType} to the sauce in the skillet and toss to combine.`,
-      `If needed, add some of the reserved cooking water to loosen the sauce.`,
-      `Garnish with herbs and serve immediately.`
-    ];
-  } else {
-    // Generic recipe instructions that reference the ingredients
-    return [
-      `Prepare all ingredients: wash, peel and chop ${mainIngredients.join(', ')} as needed.`,
-      `Heat oil in a suitable pan over medium heat.`,
-      `Add ${ingredients.find(i => i.includes('onion')) || 'onions'} and ${ingredients.find(i => i.includes('garlic')) || 'garlic'}, sauté until fragrant and translucent.`,
-      `Add ${mainIngredients[0]} and cook for 3-5 minutes, stirring occasionally.`,
-      `Add ${mainIngredients[1] || 'the next ingredient'} and continue cooking for 2-3 minutes.`,
-      `Pour in any liquids and bring to a simmer if applicable.`,
-      `Add ${secondaryIngredients.join(', ') || 'remaining ingredients'} to the pan.`,
-      `Season with ${seasonings.join(', ') || 'salt and pepper'} to taste.`,
-      `Cover and cook for 10-15 minutes, or until all ingredients are properly cooked.`,
-      `Serve hot, garnished with fresh herbs if available.`
-    ];
-  }
-};
+    // Add Mediterranean cuisine type with appropriate dishes
+    'mediterranean': {
+      prefix: 'Mediterranean',
+      dishes: {
+        standard: ['Greek Salad', 'Hummus with Pita', 'Lamb Kebabs', 'Moussaka', 'Paella'],
+        vegetarian: ['Spanakopita', 'Falafel Wrap', 'Vegetable Tagine', 'Greek Salad', 'Stuffed Bell Peppers'],
+        vegan: ['Tabbouleh Salad', 'Dolmas', 'Vegan Falafel Bowl', 'Hummus with Vegetables', 'Mediterranean Lentil Soup'],
+        keto: ['Greek Chicken Souvlaki', 'Mediterranean Cauliflower Rice', 'Keto Tzatziki with Vegetables', 'Grilled Halloumi Cheese', 'Mediterranean Fish with Olives'],
+        paleo: ['Zucchini Hummus', 'Mediterranean Chicken with Herbs', 'Paleo Greek Meatballs', 'Eggplant and Olive Stew', 'Grilled Lamb with Herbs'],
+        'gluten-free': ['Greek Salad', 'Gluten-Free Falafel', 'Mediterranean Quinoa Bowl', 'Stuffed Eggplants', 'Grilled Fish with Herbs']
+      },
+      images: {
+        standard: [
+          "https://images.unsplash.com/photo-1551248429-40975aa4de74", // Greek Salad
+          "https://images.unsplash.com/photo-1577805947697-89e18249d767", // Hummus
+          "https://images.unsplash.com/photo-1603360946369-dc9bb6258143", // Lamb Kebabs
+          "https://images.unsplash.com/photo-1574484284002-952d92456975", // Moussaka
+          "https://images.unsplash.com/photo-1515443961218-a51367888e4b"  // Paella
+        ],
+        vegetarian: [
+          "https://images.unsplash.com/photo-1644704170910-a0cdf183649b", // Spanakopita
+          "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38", // Falafel Wrap
+          "https://images.unsplash.com/photo-1490645935967-10de6ba17061", // Vegetable Tagine
+          "https://images.unsplash.com/photo-1551248429-40975aa4de74", // Greek Salad
+          "https://images.unsplash.com/photo-1602473812169-fa6878a41fbb"  // Stuffed Peppers
+        ],
+        vegan: [
+          "https://images.unsplash.com/photo-1593001534082-a9a0ec307433", // Tabbouleh
+          "https://images.unsplash.com/photo-1606505262466-fdbcfd3b9965", // Dolmas
+          "https://images.unsplash.com/photo-1593560708920-61dd98c46a4e", // Falafel Bowl
+          "https://images.unsplash.com/photo-1577805947697-89e18249d767", // Hummus with Vegetables
+          "https://images.unsplash.com/photo-1547592180-85f173990554"  // Lentil Soup
+        ],
+        keto: [
+          "https://images.unsplash.com/photo-1599487488170-d11ec9c172f0", // Souvlaki
+          "https://images.unsplash.com/photo-1590759485397-26233d2f1ae0", // Cauli Rice
+          "https://images.unsplash.com/photo-1631898039984-fd5f61fe8732", // Tzatziki
+          "https://images.unsplash.com/photo-1559561853-08451507cbe7", // Halloumi
+          "https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2"  // Fish with Olives
+        ],
+        paleo: [
+          "https://images.unsplash.com/photo-1505576399279-565b52d4ac71", // Zucchini Hummus
+          "https://images.unsplash.com/photo-1599487488170-d11ec9c172f0", // Mediterranean Chicken
+          "https://images.unsplash.com/photo-1529042410759-befb1204b468", // Greek Meatballs
+          "https://images.unsplash.com/photo-1615485290382-441e4d049cb5", // Eggplant and Olive
+          "https://images.unsplash.com/photo-1603360946369-dc9bb6258143"  // Grilled Lamb
+        ],
+        'gluten-free': [
+          "https://images.unsplash.com/photo-1551248429-40975aa4de74", // Greek Salad
+          "https://images.unsplash.com/photo-1593560708920-61dd98c46a4e", // GF Falafel
+          "https://images.unsplash.com/photo-1556010614-9c6b0e0546d1", // Quinoa Bowl
+          "https://images.unsplash.com/photo-1518779578993-ec3579fee39f", // Stuffed Eggplants
+          "https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2"  // Grilled Fish
+        ]
+      }
+    },
+    'indian': {
+      prefix: 'Indian',
+      dishes: {
+        standard: ['Butter Chicken', 'Biryani', 'Tikka Masala', 'Naan Bread', 'Samosas'],
+        vegetarian: ['Vegetable Curry', 'Paneer Tikka', 'Aloo Gobi', 'Dal Makhani', 'Vegetable Biryani'],
+        vegan: ['Chana Masala', 'Vegetable Pakoras', 'Vegan Dal', 'Aloo Gobi', 'Bhindi Masala'],
+        keto: ['Keto Butter Chicken', 'Paneer Tikka (No Bread)', 'Egg Curry', 'Keto Tandoori Chicken', 'Keto Coconut Curry'],
+        paleo: ['Tandoori Chicken', 'Paleo Curry', 'Coconut Curry Fish', 'Paleo Stuffed Peppers', 'Cucumber Raita'],
+        'gluten-free': ['Rice Dosas', 'Gluten-Free Curry', 'Rice Idli', 'Gluten-Free Biryani', 'Gluten-Free Pappadums']
+      },
+      images: {
+        standard: [
+          "https://images.unsplash.com/photo-1565557623262-b51c2513a641", // Butter Chicken
+          "https://images.unsplash.com/photo-1589302168068-964664d93dc0", // Biryani
+          "https://images.unsplash.com/photo-1565557623262-b51c2513a641", // Tikka Masala
+          "https://images.unsplash.com/photo-1565538810643-b5bdb714032a", // Naan
+          "https://images.unsplash.com/photo-1601050690597-df0568f70950"  // Samosas
+        ],
+        vegetarian: [
+          "https://images.unsplash.com/photo-1585937421612-70a008356fbe", // Vegetable Curry
+          "https://images.unsplash.com/photo-1567188040759-fb8a883dc6d6", // Paneer Tikka
+          "https://images.unsplash.com/photo-1613292443284-8d10ef9d4698", // Aloo Gobi
+          "https://images.unsplash.com/photo-1626132644485-f6af7056f482", // Dal Makhani
+          "https://images.unsplash.com/photo-1589302168068-964664d93dc0"  // Vegetable Biryani
+        ],
+        vegan: [
+          "https://images.unsplash.com/photo-1616300413710-73e6387707d8", // Chana Masala
+          "https://images.unsplash.com/photo-1461009683693-342af2f2d6ce", // Pakoras
+          "https://images.unsplash.com/photo-1626132644485-f6af7056f482", // Vegan Dal
+          "https://images.unsplash.com/photo-1613292443284-8d10ef9d4698", // Aloo Gobi
+          "https://images.unsplash.com/photo-1603894584373-5ac82b2ae398"  // Bhindi Masala
+        ],
+        keto: [
+          "https://images.unsplash.com/photo-1565557623262-b51c2513a641", // Keto Butter Chicken
+          "https://images.unsplash.com/photo-1567188040759-fb8a883dc6d6", // Paneer Tikka
+          "https://images.unsplash.com/photo-1603894584373-5ac82b2ae398", // Egg Curry
+          "https://images.unsplash.com/photo-1606471191009-63994c53433b", // Tandoori Chicken
+          "https://images.unsplash.com/photo-1455619452474-d2be8b1e70cd"  // Coconut Curry
+        ],
+        paleo: [
+          "https://images.unsplash.com/photo-1606471191009-63994c53433b", // Tandoori Chicken
+          "https://images.unsplash.com/photo-1455619452474-d2be8b1e70cd", // Paleo Curry
+          "https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2", // Coconut Curry Fish
+          "https://images.unsplash.com/photo-1602473812169-fa6878a41fbb", // Stuffed Peppers
+          "https://images.unsplash.com/photo-1596797038530-2c107229654b"  // Cucumber Raita
+        ],
+        'gluten-free': [
+          "https://images.unsplash.com/photo-1586585090219-765bc057f036", // Dosas
+          "https://images.unsplash.com/photo-1585937421612-70a008356fbe", // GF Curry
+          "https://images.unsplash.com/photo-1589516261368-3b1d3e9aa4a8", // Rice Idli
+          "https://images.unsplash.com/photo-1589302168068-964664d93dc0", // GF Biryani
+          "https://images.unsplash.com/photo-1627308595171-d1b5d95d22f7"  // GF Pappadums
+        ]
+      }
+    },
+    'mexican': {
+      prefix: 'Mexican',
+      dishes: {
+        standard: ['Beef Tacos', 'Chicken Enchiladas', 'Chiles Rellenos', 'Carne Asada', 'Beef Quesadillas'],
+        vegetarian: ['Vegetable Quesadillas', 'Bean Burritos', 'Vegetable Enchiladas', 'Guacamole and Chips', 'Cheese Tamales'],
+        vegan: ['Vegan Tacos', 'Bean and Rice Burritos', 'Vegan Tortilla Soup', 'Guacamole and Vegetables', 'Mexican Rice Bowl'],
+        keto: ['Taco Salad (No Shell)', 'Keto Mexican Cauliflower Rice', 'Keto Fajitas', 'Mexican Stuffed Avocados', 'Keto Enchiladas'],
+        paleo: ['Paleo Carnitas', 'Mexican Cauliflower Rice', 'Paleo Fajita Bowl', 'Paleo Mexican Stuffed Peppers', 'Paleo Mexican Chicken Soup'],
+        'gluten-free': ['Corn Tortilla Tacos', 'Gluten-Free Enchiladas', 'Mexican Rice Bowl', 'Gluten-Free Tortilla Soup', 'Corn Tortilla Chips with Salsa']
+      },
+      images: {
+        standard: [
+          "https://images.unsplash.com/photo-1564767609342-620cb19b2357", // Tacos
+          "https://images.unsplash.com/photo-1534352956036-cd81e27dd615", // Enchiladas
+          "https://images.unsplash.com/photo-1615870216519-2f9fa575fa5c", // Chiles Rellenos
+          "https://images.unsplash.com/photo-1611250282002-4b98945fc825", // Carne Asada
+          "https://images.unsplash.com/photo-1618040996337-56904b7850b9"  // Quesadillas
+        ],
+        vegetarian: [
+          "https://images.unsplash.com/photo-1618040996337-56904b7850b9", // Quesadillas
+          "https://images.unsplash.com/photo-1562059390-a761a084768e", // Burritos
+          "https://images.unsplash.com/photo-1534352956036-cd81e27dd615", // Enchiladas
+          "https://images.unsplash.com/photo-1551326844-4df70f78d0e9", // Guacamole
+          "https://images.unsplash.com/photo-1612225544180-bdd7a7a0dd7f"  // Tamales
+        ],
+        vegan: [
+          "https://images.unsplash.com/photo-1552332386-f8dd00dc2f85", // Vegan Tacos
+          "https://images.unsplash.com/photo-1562059390-a761a084768e", // Burritos
+          "https://images.unsplash.com/photo-1458898840853-20f9d66a50ad", // Tortilla Soup
+          "https://images.unsplash.com/photo-1551326844-4df70f78d0e9", // Guacamole
+          "https://images.unsplash.com/photo-1543352634-a1c51d9f1fa7"  // Rice Bowl
+        ],
+        keto: [
