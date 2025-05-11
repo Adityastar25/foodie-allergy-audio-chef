@@ -6,6 +6,7 @@ export interface Recipe {
   imageUrl?: string;
   preparationTime?: string;
   servings?: number;
+  dietaryPreference?: string;
   nutritionalInfo?: {
     calories?: number;
     protein?: number;
@@ -26,4 +27,3 @@ export interface GeminiResponse {
   success: boolean;
   error?: string;
 }
-
