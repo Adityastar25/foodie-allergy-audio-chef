@@ -6,29 +6,34 @@ import RecipeForm from "@/components/RecipeForm";
 import RecipeCard from "@/components/RecipeCard";
 import { Recipe, RecipeRequest } from "@/types/recipe";
 import { generateRecipe } from "@/services/recipeService";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink } from "@/components/ui/pagination";
 
 const Index = () => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const recipesPerPage = 6;
 
   const handleGenerateRecipe = async (request: RecipeRequest) => {
     setIsLoading(true);
     try {
       const response = await generateRecipe(request);
       
-      if (response.success && response.recipe) {
-        // Add new recipe to the beginning of the list
-        setRecipes(prev => [response.recipe, ...prev]);
+      if (response.success && response.recipes && response.recipes.length > 0) {
+        // Add new recipes to the beginning of the list
+        setRecipes(prev => [...response.recipes, ...prev]);
+        setCurrentPage(1); // Reset to first page when new recipes are generated
+        
         toast({
-          title: "Recipe Generated!",
-          description: `Your ${response.recipe.title} recipe is ready.`,
+          title: "Recipes Generated!",
+          description: `${response.recipes.length} new recipes are ready.`,
         });
       } else {
         toast({
           variant: "destructive",
           title: "Error",
-          description: response.error || "Failed to generate recipe. Please try again.",
+          description: response.error || "Failed to generate recipes. Please try again.",
         });
       }
     } catch (error) {
@@ -42,13 +47,19 @@ const Index = () => {
       setIsLoading(false);
     }
   };
+  
+  // Pagination logic
+  const indexOfLastRecipe = currentPage * recipesPerPage;
+  const indexOfFirstRecipe = indexOfLastRecipe - recipesPerPage;
+  const currentRecipes = recipes.slice(indexOfFirstRecipe, indexOfLastRecipe);
+  const totalPages = Math.ceil(recipes.length / recipesPerPage);
 
   return (
     <div className="min-h-screen flex flex-col bg-recipe-background">
       <Header />
       
       <main className="container mx-auto px-4 py-6 flex-grow">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-6xl mx-auto">
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4">Create Your Recipe</h2>
             <RecipeForm onSubmit={handleGenerateRecipe} isLoading={isLoading} />
@@ -57,11 +68,31 @@ const Index = () => {
           {recipes.length > 0 && (
             <section>
               <h2 className="text-2xl font-semibold mb-4">Your Recipes</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {recipes.map((recipe, index) => (
-                  <RecipeCard key={index} recipe={recipe} />
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {currentRecipes.map((recipe, index) => (
+                  <RecipeCard key={`${recipe.title}-${index}`} recipe={recipe} />
                 ))}
               </div>
+              
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="mt-6">
+                  <Pagination>
+                    <PaginationContent>
+                      {Array.from({ length: totalPages }, (_, i) => (
+                        <PaginationItem key={i + 1}>
+                          <PaginationLink
+                            isActive={currentPage === i + 1}
+                            onClick={() => setCurrentPage(i + 1)}
+                          >
+                            {i + 1}
+                          </PaginationLink>
+                        </PaginationItem>
+                      ))}
+                    </PaginationContent>
+                  </Pagination>
+                </div>
+              )}
             </section>
           )}
         </div>
@@ -77,3 +108,4 @@ const Index = () => {
 };
 
 export default Index;
+

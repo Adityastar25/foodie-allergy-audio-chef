@@ -22,7 +22,8 @@ export interface RecipeRequest {
 }
 
 export interface GeminiResponse {
-  recipe: Recipe;
+  recipes: Recipe[];  // Changed from single recipe to array of recipes
   success: boolean;
   error?: string;
 }
+

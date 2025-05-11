@@ -1,11 +1,11 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Recipe } from "@/types/recipe";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import speechService from "@/services/speechService";
-import { Book } from "lucide-react";
+import { Book, Pause, Play } from "lucide-react";
 
 interface RecipeCardProps {
   recipe: Recipe;
@@ -14,24 +14,47 @@ interface RecipeCardProps {
 const RecipeCard: React.FC<RecipeCardProps> = ({ recipe }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  
+  // Effect to update speaking state when speech service state changes
+  useEffect(() => {
+    const checkSpeakingInterval = setInterval(() => {
+      if (isSpeaking && !speechService.isSpeaking()) {
+        setIsSpeaking(false);
+      }
+    }, 500);
+    
+    return () => clearInterval(checkSpeakingInterval);
+  }, [isSpeaking]);
+  
+  // Effect to stop speaking when dialog is closed
+  useEffect(() => {
+    if (!isOpen && isSpeaking) {
+      handleStopSpeaking();
+    }
+  }, [isOpen]);
 
   const handleSpeakInstructions = () => {
     if (isSpeaking) {
-      speechService.stop();
-      setIsSpeaking(false);
+      handleStopSpeaking();
     } else {
-      const textToRead = recipe.instructions.join(". ");
+      // Create a more detailed narration including title, ingredients and instructions
+      const textToRead = `
+        Recipe for ${recipe.title}.
+        You will need the following ingredients:
+        ${recipe.ingredients.join(", ")}.
+        
+        Now for the instructions:
+        ${recipe.instructions.map((step, index) => `Step ${index + 1}: ${step}`).join(". ")}
+      `;
+      
       speechService.speak(textToRead);
       setIsSpeaking(true);
-      
-      // Set up an interval to check if speaking is done
-      const checkInterval = setInterval(() => {
-        if (!speechService.isSpeaking()) {
-          setIsSpeaking(false);
-          clearInterval(checkInterval);
-        }
-      }, 1000);
     }
+  };
+  
+  const handleStopSpeaking = () => {
+    speechService.stop();
+    setIsSpeaking(false);
   };
 
   return (
@@ -55,7 +78,12 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe }) => {
         </CardContent>
       </Card>
 
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <Dialog open={isOpen} onOpenChange={(open) => {
+        setIsOpen(open);
+        if (!open && isSpeaking) {
+          handleStopSpeaking();
+        }
+      }}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold">{recipe.title}</DialogTitle>
@@ -125,7 +153,8 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe }) => {
                     className="flex items-center gap-1"
                     size="sm"
                   >
-                    <Book size={16} />
+                    {isSpeaking ? <Pause size={16} /> : <Play size={16} />}
+                    <Book size={16} className="ml-1" />
                     {isSpeaking ? "Stop Reading" : "Read Aloud"}
                   </Button>
                 </div>
@@ -144,3 +173,4 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe }) => {
 };
 
 export default RecipeCard;
+

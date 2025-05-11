@@ -1,5 +1,5 @@
 
-import { RecipeRequest, GeminiResponse } from "../types/recipe";
+import { RecipeRequest, GeminiResponse, Recipe } from "../types/recipe";
 
 // This would be replaced with a proper API key
 const GEMINI_API_KEY = "YOUR_API_KEY";
@@ -13,11 +13,16 @@ export const generateRecipe = async (request: RecipeRequest): Promise<GeminiResp
     // Simulate API call delay
     await new Promise(resolve => setTimeout(resolve, 1500));
     
-    // Create a mock recipe based on the request
-    const mockRecipe = createMockRecipe(request);
+    // Create multiple mock recipes based on the request
+    const numberOfRecipes = 3; // Generate 3 recipes
+    const mockRecipes: Recipe[] = [];
+    
+    for (let i = 0; i < numberOfRecipes; i++) {
+      mockRecipes.push(createMockRecipe(request, i));
+    }
     
     return {
-      recipe: mockRecipe,
+      recipes: mockRecipes,
       success: true
     };
     
@@ -31,7 +36,7 @@ export const generateRecipe = async (request: RecipeRequest): Promise<GeminiResp
       body: JSON.stringify({
         contents: [{
           parts: [{
-            text: generatePrompt(request)
+            text: generatePrompt(request, numberOfRecipes)
           }]
         }]
       })
@@ -39,30 +44,26 @@ export const generateRecipe = async (request: RecipeRequest): Promise<GeminiResp
 
     const data = await response.json();
     
-    // Parse the response to extract recipe information
-    const parsedRecipe = parseGeminiResponse(data);
+    // Parse the response to extract multiple recipe information
+    const parsedRecipes = parseGeminiResponse(data);
     
     return {
-      recipe: parsedRecipe,
+      recipes: parsedRecipes,
       success: true
     };
     */
   } catch (error) {
     console.error("Error generating recipe:", error);
     return {
-      recipe: {
-        title: "",
-        ingredients: [],
-        instructions: [],
-      },
+      recipes: [],
       success: false,
       error: error instanceof Error ? error.message : "Failed to generate recipe"
     };
   }
 };
 
-const generatePrompt = (request: RecipeRequest): string => {
-  return `Generate a detailed recipe with the following requirements:
+const generatePrompt = (request: RecipeRequest, numberOfRecipes: number): string => {
+  return `Generate ${numberOfRecipes} different detailed recipes with the following requirements:
     
     Available ingredients: ${request.ingredients.join(', ')}
     
@@ -72,7 +73,7 @@ const generatePrompt = (request: RecipeRequest): string => {
     
     Dietary preference: ${request.dietaryPreference || 'None specified'}
     
-    Please format the response as a JSON object with the following structure:
+    Please format the response as a JSON array with each recipe having the following structure:
     {
       "title": "Recipe Title",
       "ingredients": ["ingredient 1", "ingredient 2", ...],
@@ -88,42 +89,92 @@ const generatePrompt = (request: RecipeRequest): string => {
     }`;
 };
 
-// Mock function to create a recipe based on the request
-const createMockRecipe = (request: RecipeRequest) => {
-  const cuisineTypes: Record<string, { prefix: string, dishes: string[] }> = {
+// Improved mock function to create recipes based on the request with better title-image matching
+const createMockRecipe = (request: RecipeRequest, index: number) => {
+  const cuisineTypes: Record<string, { prefix: string, dishes: string[], images: string[] }> = {
     'italian': {
       prefix: 'Italian',
-      dishes: ['Pasta', 'Risotto', 'Pizza', 'Lasagna', 'Bruschetta']
+      dishes: ['Pasta Carbonara', 'Margherita Pizza', 'Lasagna', 'Risotto', 'Bruschetta'],
+      images: [
+        "https://images.unsplash.com/photo-1546069901-ba9599a7e63c", // Pasta
+        "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38", // Pizza
+        "https://images.unsplash.com/photo-1574894709920-11b28e7367e3", // Lasagna
+        "https://images.unsplash.com/photo-1551183053-bf91a1d81141", // Risotto
+        "https://images.unsplash.com/photo-1572695157998-c5186b64c1c2" // Bruschetta
+      ]
     },
     'chinese': {
       prefix: 'Chinese',
-      dishes: ['Stir-Fry', 'Dumplings', 'Noodles', 'Fried Rice', 'Spring Rolls']
+      dishes: ['Stir-Fried Noodles', 'Dim Sum Dumplings', 'Kung Pao Chicken', 'Fried Rice', 'Spring Rolls'],
+      images: [
+        "https://images.unsplash.com/photo-1585032226651-759b368d7246", // Noodles
+        "https://images.unsplash.com/photo-1496116218417-1a781b1c416c", // Dumplings
+        "https://images.unsplash.com/photo-1525755662778-989d0524087e", // Kung Pao
+        "https://images.unsplash.com/photo-1603133872878-684f208fb84b", // Fried Rice
+        "https://images.unsplash.com/photo-1515669097368-22e68427d265" // Spring Rolls
+      ]
     },
     'indian': {
       prefix: 'Indian',
-      dishes: ['Curry', 'Tikka Masala', 'Biryani', 'Saag', 'Chana Masala']
+      dishes: ['Butter Chicken Curry', 'Vegetable Tikka Masala', 'Lamb Biryani', 'Palak Paneer', 'Chana Masala'],
+      images: [
+        "https://images.unsplash.com/photo-1565557623262-b51c2513a641", // Butter Chicken
+        "https://images.unsplash.com/photo-1585937421612-70a008356cf7", // Tikka Masala
+        "https://images.unsplash.com/photo-1631515243349-e0cb75fb8d3a", // Biryani
+        "https://images.unsplash.com/photo-1601050690597-df0568f70950", // Palak Paneer
+        "https://images.unsplash.com/photo-1546833998-877b37c2e5c6" // Chana Masala
+      ]
     },
     'mexican': {
       prefix: 'Mexican', 
-      dishes: ['Tacos', 'Enchiladas', 'Quesadilla', 'Burrito', 'Guacamole']
+      dishes: ['Beef Tacos', 'Chicken Enchiladas', 'Cheese Quesadillas', 'Bean Burritos', 'Fresh Guacamole'],
+      images: [
+        "https://images.unsplash.com/photo-1565299507177-b0ac66763828", // Tacos
+        "https://images.unsplash.com/photo-1534352956036-cd81e27dd615", // Enchiladas
+        "https://images.unsplash.com/photo-1599974579688-8dbdd335c77f", // Quesadillas
+        "https://images.unsplash.com/photo-1594149572395-50db09f82e71", // Burritos
+        "https://images.unsplash.com/photo-1604548530945-f33587db61fd" // Guacamole
+      ]
     },
     'mediterranean': {
       prefix: 'Mediterranean',
-      dishes: ['Hummus', 'Falafel', 'Greek Salad', 'Kebabs', 'Tabbouleh']
+      dishes: ['Classic Hummus', 'Falafel Plate', 'Greek Salad', 'Grilled Lamb Kebabs', 'Tabbouleh'],
+      images: [
+        "https://images.unsplash.com/photo-1577906096429-f73c2c312435", // Hummus
+        "https://images.unsplash.com/photo-1593001872095-7d5b3868dd20", // Falafel
+        "https://images.unsplash.com/photo-1551248429-40975aa4de74", // Greek Salad
+        "https://images.unsplash.com/photo-1555939594-58d7cb561ad1", // Kebabs
+        "https://images.unsplash.com/photo-1505253668822-42074d58a7c6" // Tabbouleh
+      ]
     },
     'japanese': {
       prefix: 'Japanese',
-      dishes: ['Sushi', 'Ramen', 'Teriyaki', 'Miso Soup', 'Tempura']
+      dishes: ['Fresh Sushi Rolls', 'Tonkotsu Ramen', 'Chicken Teriyaki', 'Miso Soup', 'Vegetable Tempura'],
+      images: [
+        "https://images.unsplash.com/photo-1583623025817-d180a2221d0a", // Sushi
+        "https://images.unsplash.com/photo-1557872943-16a5ac26437e", // Ramen
+        "https://images.unsplash.com/photo-1519984388953-d2406bc725e1", // Teriyaki
+        "https://images.unsplash.com/photo-1607301406259-dfb186e15de8", // Miso Soup
+        "https://images.unsplash.com/photo-1615361200141-f45040f367be" // Tempura
+      ]
     },
     'american': {
       prefix: 'American',
-      dishes: ['Burger', 'Mac and Cheese', 'BBQ Ribs', 'Fried Chicken', 'Chili']
+      dishes: ['Classic Cheeseburger', 'Creamy Mac and Cheese', 'BBQ Ribs', 'Southern Fried Chicken', 'Hearty Beef Chili'],
+      images: [
+        "https://images.unsplash.com/photo-1568901346375-23c9450c58cd", // Burger
+        "https://images.unsplash.com/photo-1612152328336-83c6d9a44d72", // Mac and Cheese
+        "https://images.unsplash.com/photo-1544025162-d76694265947", // BBQ Ribs
+        "https://images.unsplash.com/photo-1626645738196-c2a7c87a8f58", // Fried Chicken
+        "https://images.unsplash.com/photo-1551550649-12abb73e6510" // Chili
+      ]
     }
   };
   
   let cuisineInfo = cuisineTypes['italian']; // Default
   const lowerCuisine = request.cuisineType.toLowerCase();
   
+  // Find matching cuisine
   for (const key in cuisineTypes) {
     if (lowerCuisine.includes(key)) {
       cuisineInfo = cuisineTypes[key];
@@ -131,19 +182,23 @@ const createMockRecipe = (request: RecipeRequest) => {
     }
   }
   
-  const randomDish = cuisineInfo.dishes[Math.floor(Math.random() * cuisineInfo.dishes.length)];
+  // Select corresponding dish and image
+  const dishIndex = (index) % cuisineInfo.dishes.length;
+  const randomDish = cuisineInfo.dishes[dishIndex];
+  const matchingImage = cuisineInfo.images[dishIndex];
+  
   const dietPrefix = request.dietaryPreference ? `${request.dietaryPreference} ` : '';
   
-  // Generate a title based on ingredients
+  // Generate a title with appropriate prefixes
   let title = `${dietPrefix}${cuisineInfo.prefix} ${randomDish}`;
-  if (request.ingredients.length > 0) {
-    const mainIngredient = request.ingredients[Math.floor(Math.random() * request.ingredients.length)];
-    title += ` with ${mainIngredient}`;
-  }
   
-  // Generate mock ingredients
+  // Generate mock ingredients with available ingredients
+  const availableIngredients = request.ingredients.length > 0 
+    ? request.ingredients.slice(0, Math.min(request.ingredients.length, 5)) 
+    : ["ingredients"];
+  
   const mockIngredients = [
-    ...request.ingredients.slice(0, Math.min(request.ingredients.length, 5)),
+    ...availableIngredients,
     "olive oil",
     "salt",
     "black pepper",
@@ -158,24 +213,18 @@ const createMockRecipe = (request: RecipeRequest) => {
     "Add onions and garlic, sauté until translucent.",
     `Add ${request.ingredients[0] || "main ingredients"} and cook for 5 minutes.`,
     "Season with salt and pepper to taste.",
-    "Cover and simmer for 15 minutes.",
-    "Garnish and serve hot."
-  ];
-  
-  // Random image selection
-  const recipeImages = [
-    "https://images.unsplash.com/photo-1546069901-ba9599a7e63c",
-    "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38",
-    "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445",
-    "https://images.unsplash.com/photo-1540189549336-e6e99c3679fe",
-    "https://images.unsplash.com/photo-1565958011703-44f9829ba187"
+    "Cover and simmer for 15 minutes, stirring occasionally.",
+    `Add the remaining ${request.ingredients[1] || "ingredients"} and cook for another 5 minutes.`,
+    "Taste and adjust seasoning if necessary.",
+    "Remove from heat and let it rest for 2 minutes.",
+    "Garnish with fresh herbs and serve hot."
   ];
   
   return {
     title,
     ingredients: mockIngredients,
     instructions: mockInstructions,
-    imageUrl: recipeImages[Math.floor(Math.random() * recipeImages.length)],
+    imageUrl: matchingImage,
     preparationTime: `${Math.floor(Math.random() * 30) + 15} minutes`,
     servings: Math.floor(Math.random() * 4) + 2,
     nutritionalInfo: {
@@ -186,3 +235,4 @@ const createMockRecipe = (request: RecipeRequest) => {
     }
   };
 };
+
