@@ -1,111 +1,85 @@
 
-import React, { useState } from "react";
-import { useToast } from "@/components/ui/use-toast";
+import { useState } from "react";
+import { Container } from "@/components/ui/container";
 import Header from "@/components/Header";
 import RecipeForm from "@/components/RecipeForm";
 import RecipeCard from "@/components/RecipeCard";
-import { Recipe, RecipeRequest } from "@/types/recipe";
+import { RecipeRequest, Recipe, GeminiResponse } from "@/types/recipe";
 import { generateRecipe } from "@/services/recipeService";
-import { Pagination, PaginationContent, PaginationItem, PaginationLink } from "@/components/ui/pagination";
+import { generateRecipesWithGemini } from "@/services/geminiService";
+import { toast } from "@/hooks/use-toast";
 
 const Index = () => {
-  const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const recipesPerPage = 6;
+  const [loading, setLoading] = useState(false);
 
-  const handleGenerateRecipe = async (request: RecipeRequest) => {
-    setIsLoading(true);
+  const handleFormSubmit = async (request: RecipeRequest) => {
+    setLoading(true);
+    
     try {
-      const response = await generateRecipe(request);
+      // Try to use Gemini API first
+      const geminiResponse = await generateRecipesWithGemini(request);
       
-      if (response.success && response.recipes && response.recipes.length > 0) {
-        // Add new recipes to the beginning of the list
-        setRecipes(prev => [...response.recipes, ...prev]);
-        setCurrentPage(1); // Reset to first page when new recipes are generated
-        
-        toast({
-          title: "Recipes Generated!",
-          description: `${response.recipes.length} new recipes are ready.`,
-        });
+      if (geminiResponse.success && geminiResponse.recipes.length > 0) {
+        setRecipes(geminiResponse.recipes);
       } else {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: response.error || "Failed to generate recipes. Please try again.",
-        });
+        // Fall back to mock recipe generation if Gemini API fails
+        const mockResponse = await generateRecipe(request);
+        setRecipes(mockResponse.recipes);
       }
     } catch (error) {
-      console.error("Error:", error);
+      console.error("Error generating recipes:", error);
       toast({
-        variant: "destructive",
         title: "Error",
-        description: "An unexpected error occurred. Please try again.",
+        description: "Failed to generate recipes. Please try again.",
+        variant: "destructive",
       });
+      
+      // Fall back to mock recipe generation
+      try {
+        const mockResponse = await generateRecipe(request);
+        setRecipes(mockResponse.recipes);
+      } catch (fallbackError) {
+        console.error("Fallback error:", fallbackError);
+        setRecipes([]);
+      }
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
-  
-  // Pagination logic
-  const indexOfLastRecipe = currentPage * recipesPerPage;
-  const indexOfFirstRecipe = indexOfLastRecipe - recipesPerPage;
-  const currentRecipes = recipes.slice(indexOfFirstRecipe, indexOfLastRecipe);
-  const totalPages = Math.ceil(recipes.length / recipesPerPage);
 
   return (
-    <div className="min-h-screen flex flex-col bg-recipe-background">
+    <div className="min-h-screen bg-gray-50">
       <Header />
-      
-      <main className="container mx-auto px-4 py-6 flex-grow">
-        <div className="max-w-6xl mx-auto">
-          <section className="mb-8">
-            <h2 className="text-2xl font-semibold mb-4">Create Your Recipe</h2>
-            <RecipeForm onSubmit={handleGenerateRecipe} isLoading={isLoading} />
-          </section>
-          
-          {recipes.length > 0 && (
-            <section>
-              <h2 className="text-2xl font-semibold mb-4">Your Recipes</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {currentRecipes.map((recipe, index) => (
-                  <RecipeCard key={`${recipe.title}-${index}`} recipe={recipe} />
-                ))}
-              </div>
-              
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="mt-6">
-                  <Pagination>
-                    <PaginationContent>
-                      {Array.from({ length: totalPages }, (_, i) => (
-                        <PaginationItem key={i + 1}>
-                          <PaginationLink
-                            isActive={currentPage === i + 1}
-                            onClick={() => setCurrentPage(i + 1)}
-                          >
-                            {i + 1}
-                          </PaginationLink>
-                        </PaginationItem>
-                      ))}
-                    </PaginationContent>
-                  </Pagination>
+      <Container className="py-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="md:col-span-1">
+            <RecipeForm onSubmit={handleFormSubmit} isLoading={loading} />
+          </div>
+          <div className="md:col-span-2">
+            <div className="space-y-6">
+              {loading ? (
+                <div className="flex items-center justify-center h-64">
+                  <div className="text-lg text-gray-500">Generating recipes...</div>
+                </div>
+              ) : recipes.length > 0 ? (
+                recipes.map((recipe, index) => (
+                  <RecipeCard key={index} recipe={recipe} />
+                ))
+              ) : (
+                <div className="flex flex-col items-center justify-center h-64 text-center p-4">
+                  <h3 className="text-xl font-medium text-gray-700">No Recipes Yet</h3>
+                  <p className="text-gray-500 mt-2">
+                    Enter your ingredients and preferences to generate recipes
+                  </p>
                 </div>
               )}
-            </section>
-          )}
+            </div>
+          </div>
         </div>
-      </main>
-      
-      <footer className="bg-white py-4 border-t">
-        <div className="container mx-auto px-4 text-center text-gray-500 text-sm">
-          © {new Date().getFullYear()} Recipe Generator. Powered by Gemini AI
-        </div>
-      </footer>
+      </Container>
     </div>
   );
 };
 
 export default Index;
-
