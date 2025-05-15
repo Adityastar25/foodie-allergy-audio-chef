@@ -1,4 +1,3 @@
-
 class SpeechService {
   private static instance: SpeechService;
   private synthesis: SpeechSynthesis;
@@ -49,7 +48,8 @@ class SpeechService {
       const trimmedSentence = sentence.trim() + ". ";
       
       // If adding this sentence would make the chunk too long, start a new chunk
-      if ((currentChunk + trimmedSentence).length > 200) {
+      // Keep chunks smaller (150 characters) to avoid synthesis errors
+      if ((currentChunk + trimmedSentence).length > 150) {
         if (currentChunk) {
           chunks.push(currentChunk);
         }
@@ -68,6 +68,12 @@ class SpeechService {
   }
 
   public speak(text: string): void {
+    // Ensure speech synthesis is supported
+    if (!window.speechSynthesis) {
+      console.error("Speech synthesis not supported in this browser");
+      return;
+    }
+    
     // Stop any current speech
     this.stop();
     
@@ -93,52 +99,68 @@ class SpeechService {
       return;
     }
     
-    // Create a new utterance for this chunk
-    const utterance = new SpeechSynthesisUtterance(nextText);
-    
-    // Set preferred voice (English female voice if available)
-    if (this.isVoicesLoaded) {
-      const englishVoice = this.voices.find(
-        voice => voice.lang.includes('en') && voice.name.includes('Female')
-      );
-      utterance.voice = englishVoice || null;
-    }
-    
-    // Configure speech properties
-    utterance.rate = 1.0; // Normal speed
-    utterance.pitch = 1.0; // Normal pitch
-    utterance.volume = 1.0; // Full volume
-    
-    // Store current utterance so we can cancel it later if needed
-    this.currentUtterance = utterance;
-    
-    // When this chunk finishes, process the next one
-    utterance.onend = () => {
-      this.currentUtterance = null;
-      this.isProcessingQueue = false;
+    try {
+      // Create a new utterance for this chunk
+      const utterance = new SpeechSynthesisUtterance(nextText);
       
-      // Process next chunk if available
-      if (this.utteranceQueue.length > 0) {
-        setTimeout(() => this.processQueue(), 100); // Small delay between chunks
+      // Set preferred voice (English voice if available)
+      if (this.isVoicesLoaded && this.voices.length > 0) {
+        // Try to find an English voice
+        const englishVoice = this.voices.find(
+          voice => voice.lang.includes('en')
+        );
+        
+        // If found, use it; otherwise use the first available voice
+        utterance.voice = englishVoice || this.voices[0];
       }
-    };
-    
-    // Handle errors
-    utterance.onerror = (error) => {
-      console.error("Speech synthesis error:", error);
+      
+      // Configure speech properties
+      utterance.rate = 1.0; // Normal speed
+      utterance.pitch = 1.0; // Normal pitch
+      utterance.volume = 1.0; // Full volume
+      
+      // Store current utterance so we can cancel it later if needed
+      this.currentUtterance = utterance;
+      
+      // When this chunk finishes, process the next one
+      utterance.onend = () => {
+        this.currentUtterance = null;
+        this.isProcessingQueue = false;
+        
+        // Process next chunk if available
+        if (this.utteranceQueue.length > 0) {
+          setTimeout(() => this.processQueue(), 100); // Small delay between chunks
+        }
+      };
+      
+      // Handle errors
+      utterance.onerror = (error) => {
+        console.error("Speech synthesis error:", error);
+        this.isProcessingQueue = false;
+        this.currentUtterance = null;
+        
+        // Attempt to continue with next chunk
+        setTimeout(() => this.processQueue(), 100);
+      };
+      
+      // Start speaking
+      this.synthesis.speak(utterance);
+    } catch (error) {
+      console.error("Error in speech synthesis:", error);
       this.isProcessingQueue = false;
       this.currentUtterance = null;
       
-      // Attempt to continue with next chunk
-      setTimeout(() => this.processQueue(), 100);
-    };
-    
-    // Start speaking
-    this.synthesis.speak(utterance);
+      // Try to process the next chunk
+      if (this.utteranceQueue.length > 0) {
+        setTimeout(() => this.processQueue(), 100);
+      }
+    }
   }
 
   public stop(): void {
-    this.synthesis.cancel();
+    if (window.speechSynthesis) {
+      this.synthesis.cancel();
+    }
     this.utteranceQueue = [];
     this.isProcessingQueue = false;
     this.currentUtterance = null;
@@ -162,4 +184,3 @@ class SpeechService {
 }
 
 export default SpeechService.getInstance();
-

@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { Recipe } from "@/types/recipe";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import speechService from "@/services/speechService";
 import { Book, Pause, Play } from "lucide-react";
 
@@ -33,7 +33,10 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe }) => {
     }
   }, [isOpen]);
 
-  const handleSpeakInstructions = () => {
+  const handleSpeakInstructions = (e) => {
+    // Prevent event from propagating to parent elements
+    e.stopPropagation();
+    
     if (isSpeaking) {
       handleStopSpeaking();
     } else {
@@ -87,6 +90,9 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe }) => {
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold">{recipe.title}</DialogTitle>
+            <DialogDescription className="sr-only">
+              Recipe details for {recipe.title}
+            </DialogDescription>
           </DialogHeader>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -145,10 +151,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe }) => {
                 <div className="flex justify-between items-center">
                   <h4 className="font-medium mb-2">Instructions</h4>
                   <Button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleSpeakInstructions();
-                    }}
+                    onClick={handleSpeakInstructions}
                     variant="outline"
                     className="flex items-center gap-1"
                     size="sm"
@@ -173,4 +176,3 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe }) => {
 };
 
 export default RecipeCard;
-
