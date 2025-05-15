@@ -6,8 +6,6 @@ import TagInput from "./TagInput";
 import CuisineSelector from "./CuisineSelector";
 import DietaryPreferenceSelector from "./DietaryPreferenceSelector";
 import { RecipeRequest } from "@/types/recipe";
-import { getGeminiApiKey } from "@/services/geminiService";
-import GeminiApiKeyForm from "./GeminiApiKeyForm";
 
 interface RecipeFormProps {
   onSubmit: (request: RecipeRequest) => void;
@@ -19,7 +17,6 @@ const RecipeForm: React.FC<RecipeFormProps> = ({ onSubmit, isLoading }) => {
   const [allergies, setAllergies] = useState<string[]>([]);
   const [cuisineType, setCuisineType] = useState("italian");
   const [dietaryPreference, setDietaryPreference] = useState("none");
-  const [showApiKeyForm, setShowApiKeyForm] = useState(!getGeminiApiKey());
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,59 +34,38 @@ const RecipeForm: React.FC<RecipeFormProps> = ({ onSubmit, isLoading }) => {
     });
   };
 
-  const handleApiKeySaved = () => {
-    setShowApiKeyForm(false);
-  };
-
   return (
-    <div className="space-y-6">
-      {showApiKeyForm ? (
-        <GeminiApiKeyForm onApiKeySaved={handleApiKeySaved} />
-      ) : (
-        <Card className="w-full">
-          <CardContent className="pt-6">
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <TagInput
-                label="Ingredients"
-                placeholder="Add an ingredient and press Enter"
-                tags={ingredients}
-                setTags={setIngredients}
-              />
-              
-              <TagInput
-                label="Allergies"
-                placeholder="Add allergies to avoid and press Enter"
-                tags={allergies}
-                setTags={setAllergies}
-              />
-              
-              <CuisineSelector selected={cuisineType} onSelect={setCuisineType} />
-              
-              <DietaryPreferenceSelector selected={dietaryPreference} onSelect={setDietaryPreference} />
-              
-              <div className="flex flex-col space-y-2">
-                <Button 
-                  type="submit" 
-                  className="w-full"
-                  disabled={isLoading || ingredients.length === 0}
-                >
-                  {isLoading ? "Generating Recipe..." : "Generate Recipe"}
-                </Button>
-                
-                <Button 
-                  type="button" 
-                  variant="outline"
-                  onClick={() => setShowApiKeyForm(true)}
-                  className="w-full"
-                >
-                  Change API Key
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      )}
-    </div>
+    <Card className="w-full">
+      <CardContent className="pt-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <TagInput
+            label="Ingredients"
+            placeholder="Add an ingredient and press Enter"
+            tags={ingredients}
+            setTags={setIngredients}
+          />
+          
+          <TagInput
+            label="Allergies"
+            placeholder="Add allergies to avoid and press Enter"
+            tags={allergies}
+            setTags={setAllergies}
+          />
+          
+          <CuisineSelector selected={cuisineType} onSelect={setCuisineType} />
+          
+          <DietaryPreferenceSelector selected={dietaryPreference} onSelect={setDietaryPreference} />
+          
+          <Button 
+            type="submit" 
+            className="w-full"
+            disabled={isLoading || ingredients.length === 0}
+          >
+            {isLoading ? "Generating Recipe..." : "Generate Recipe"}
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
   );
 };
 
