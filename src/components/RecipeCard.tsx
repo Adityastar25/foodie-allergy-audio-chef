@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import speechService from "@/services/speechService";
 import { Book, Pause, Play } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
 
 interface RecipeCardProps {
   recipe: Recipe;
@@ -14,6 +15,7 @@ interface RecipeCardProps {
 const RecipeCard: React.FC<RecipeCardProps> = ({ recipe }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const { toast } = useToast();
   
   // Effect to update speaking state when speech service state changes
   useEffect(() => {
@@ -34,30 +36,51 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe }) => {
   }, [isOpen]);
 
   const handleSpeakInstructions = (e) => {
-    // Prevent event from propagating to parent elements
-    e.stopPropagation();
-    
-    if (isSpeaking) {
-      handleStopSpeaking();
-    } else {
-      // Create a more detailed narration including title, ingredients and instructions
-      const textToRead = `
-        Recipe for ${recipe.title}.
-        You will need the following ingredients:
-        ${recipe.ingredients.join(", ")}.
-        
-        Now for the instructions:
-        ${recipe.instructions.map((step, index) => `Step ${index + 1}: ${step}`).join(". ")}
-      `;
+    try {
+      // Prevent event from propagating to parent elements
+      e.stopPropagation();
       
-      speechService.speak(textToRead);
-      setIsSpeaking(true);
+      if (isSpeaking) {
+        handleStopSpeaking();
+      } else {
+        // Create a more detailed narration including title, ingredients and instructions
+        const textToRead = `
+          Recipe for ${recipe.title}.
+          You will need the following ingredients:
+          ${recipe.ingredients.join(", ")}.
+          
+          Now for the instructions:
+          ${recipe.instructions.map((step, index) => `Step ${index + 1}: ${step}`).join(". ")}
+        `;
+        
+        speechService.speak(textToRead);
+        setIsSpeaking(true);
+        
+        toast({
+          title: "Reading recipe aloud",
+          description: "Listen to the recipe instructions being read aloud.",
+          duration: 3000,
+        });
+      }
+    } catch (error) {
+      console.error("Error with text-to-speech:", error);
+      toast({
+        variant: "destructive",
+        title: "Speech Error",
+        description: "Could not read recipe aloud. Your browser might not support this feature.",
+        duration: 5000,
+      });
+      setIsSpeaking(false);
     }
   };
   
   const handleStopSpeaking = () => {
-    speechService.stop();
-    setIsSpeaking(false);
+    try {
+      speechService.stop();
+      setIsSpeaking(false);
+    } catch (error) {
+      console.error("Error stopping speech:", error);
+    }
   };
 
   return (
