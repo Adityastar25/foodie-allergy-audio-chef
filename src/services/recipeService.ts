@@ -1,4 +1,3 @@
-
 import { RecipeRequest, GeminiResponse, Recipe } from "../types/recipe";
 
 const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent";
@@ -85,7 +84,7 @@ Please respond with ONLY a valid JSON array in this exact format (no additional 
     "title": "Recipe Name",
     "ingredients": ["ingredient 1", "ingredient 2", "ingredient 3"],
     "instructions": ["Step 1: Do this", "Step 2: Do that", "Step 3: Final step"],
-    "imageUrl": "https://images.unsplash.com/photo-appropriate-food-image",
+    "imageUrl": "https://images.unsplash.com/photo-appropriate-food-image-url",
     "preparationTime": "30 minutes",
     "servings": 4,
     "nutritionalInfo": {
@@ -99,12 +98,18 @@ Please respond with ONLY a valid JSON array in this exact format (no additional 
 
 Requirements:
 - Generate exactly ${numberOfRecipes} recipes
-- Use realistic cooking instructions
-- Include appropriate Unsplash food image URLs
-- Respect dietary preferences and allergies
-- Make recipes that actually use the provided ingredients
+- Use realistic cooking instructions with detailed steps
+- Include high-quality Unsplash food image URLs that match the dish type and cuisine
+- Respect dietary preferences and allergies completely
+- Make recipes that creatively use the provided ingredients
 - Provide realistic nutritional information
-- Ensure all recipes match the specified cuisine type`;
+- Ensure all recipes match the specified cuisine type
+- For imageUrl, use actual Unsplash food photography URLs like:
+  * "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38" for pizza
+  * "https://images.unsplash.com/photo-1551183053-bf91a1d81141" for pasta
+  * "https://images.unsplash.com/photo-1565299585323-38174c19fe12" for tacos
+  * "https://images.unsplash.com/photo-1585937421612-70a008356fbe" for curry
+  * Choose appropriate food photography that matches each recipe`;
 };
 
 const parseGeminiResponse = (responseText: string): Recipe[] => {

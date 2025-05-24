@@ -22,8 +22,8 @@ const Index = () => {
       const response = await generateRecipe(request);
       
       if (response.success && response.recipes && response.recipes.length > 0) {
-        // Add new recipes to the beginning of the list
-        setRecipes(prev => [...response.recipes, ...prev]);
+        // Clear previous recipes and set new ones
+        setRecipes(response.recipes);
         setCurrentPage(1); // Reset to first page when new recipes are generated
         
         toast({
