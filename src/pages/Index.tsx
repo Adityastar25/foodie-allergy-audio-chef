@@ -4,6 +4,7 @@ import { useToast } from "@/components/ui/use-toast";
 import Header from "@/components/Header";
 import RecipeForm from "@/components/RecipeForm";
 import RecipeCard from "@/components/RecipeCard";
+import ApiKeyManager from "@/components/ApiKeyManager";
 import { Recipe, RecipeRequest } from "@/types/recipe";
 import { generateRecipe } from "@/services/recipeService";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink } from "@/components/ui/pagination";
@@ -60,6 +61,8 @@ const Index = () => {
       
       <main className="container mx-auto px-4 py-6 flex-grow">
         <div className="max-w-6xl mx-auto">
+          <ApiKeyManager />
+          
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4">Create Your Recipe</h2>
             <RecipeForm onSubmit={handleGenerateRecipe} isLoading={isLoading} />
