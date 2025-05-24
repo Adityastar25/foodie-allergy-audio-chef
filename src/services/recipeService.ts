@@ -1,3 +1,4 @@
+
 import { RecipeRequest, GeminiResponse, Recipe } from "../types/recipe";
 
 const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent";
@@ -84,7 +85,7 @@ Please respond with ONLY a valid JSON array in this exact format (no additional 
     "title": "Recipe Name",
     "ingredients": ["ingredient 1", "ingredient 2", "ingredient 3"],
     "instructions": ["Step 1: Do this", "Step 2: Do that", "Step 3: Final step"],
-    "imageUrl": "https://images.unsplash.com/photo-appropriate-food-image-url",
+    "imageUrl": "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38",
     "preparationTime": "30 minutes",
     "servings": 4,
     "nutritionalInfo": {
@@ -96,20 +97,24 @@ Please respond with ONLY a valid JSON array in this exact format (no additional 
   }
 ]
 
-Requirements:
+CRITICAL REQUIREMENTS:
 - Generate exactly ${numberOfRecipes} recipes
 - Use realistic cooking instructions with detailed steps
-- Include high-quality Unsplash food image URLs that match the dish type and cuisine
+- For imageUrl, you MUST use actual working Unsplash food photography URLs. Here are specific examples you should use based on the dish type:
+  * Italian dishes: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38" (pizza), "https://images.unsplash.com/photo-1551183053-bf91a1d81141" (pasta)
+  * Mexican dishes: "https://images.unsplash.com/photo-1565299585323-38174c19fe12" (tacos), "https://images.unsplash.com/photo-1551504734-5ee1c4a1479b" (burritos)
+  * Indian dishes: "https://images.unsplash.com/photo-1585937421612-70a008356fbe" (curry), "https://images.unsplash.com/photo-1563379091339-03246963d25a" (biryani)
+  * Chinese dishes: "https://images.unsplash.com/photo-1525755662778-989d0524087e" (stir fry), "https://images.unsplash.com/photo-1603133872878-684f208fb84b" (noodles)
+  * Japanese dishes: "https://images.unsplash.com/photo-1617196034796-73dfa7b1fd56" (sushi), "https://images.unsplash.com/photo-1569718212165-3a8278d5f624" (ramen)
+  * Thai dishes: "https://images.unsplash.com/photo-1559314809-0f31657def5e" (pad thai), "https://images.unsplash.com/photo-1574894709920-11b28e7367e3" (curry)
+  * American dishes: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd" (burger), "https://images.unsplash.com/photo-1544025162-d76694265947" (bbq)
+  * French dishes: "https://images.unsplash.com/photo-1626082936724-52bbed6e036f" (steak), "https://images.unsplash.com/photo-1574894709920-11b28e7367e3" (ratatouille)
+- Choose the most appropriate image URL from the examples above that matches your recipe type and cuisine
 - Respect dietary preferences and allergies completely
 - Make recipes that creatively use the provided ingredients
 - Provide realistic nutritional information
 - Ensure all recipes match the specified cuisine type
-- For imageUrl, use actual Unsplash food photography URLs like:
-  * "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38" for pizza
-  * "https://images.unsplash.com/photo-1551183053-bf91a1d81141" for pasta
-  * "https://images.unsplash.com/photo-1565299585323-38174c19fe12" for tacos
-  * "https://images.unsplash.com/photo-1585937421612-70a008356fbe" for curry
-  * Choose appropriate food photography that matches each recipe`;
+- Do NOT wrap your response in markdown code blocks - return raw JSON only`;
 };
 
 const parseGeminiResponse = (responseText: string): Recipe[] => {
@@ -131,21 +136,30 @@ const parseGeminiResponse = (responseText: string): Recipe[] => {
       throw new Error("Response is not an array");
     }
     
-    // Validate each recipe has required fields
-    const validatedRecipes = recipes.map((recipe: any) => ({
-      title: recipe.title || "Untitled Recipe",
-      ingredients: Array.isArray(recipe.ingredients) ? recipe.ingredients : [],
-      instructions: Array.isArray(recipe.instructions) ? recipe.instructions : [],
-      imageUrl: recipe.imageUrl || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c",
-      preparationTime: recipe.preparationTime || "30 minutes",
-      servings: recipe.servings || 4,
-      nutritionalInfo: recipe.nutritionalInfo || {
-        calories: 300,
-        protein: 20,
-        carbs: 25,
-        fat: 10
+    // Validate each recipe has required fields and ensure proper image URLs
+    const validatedRecipes = recipes.map((recipe: any, index: number) => {
+      let imageUrl = recipe.imageUrl || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c";
+      
+      // If the image URL looks like a placeholder, replace with a proper food image
+      if (!imageUrl.includes('images.unsplash.com') || imageUrl.includes('appropriate-food-image')) {
+        imageUrl = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"; // generic food image
       }
-    }));
+      
+      return {
+        title: recipe.title || "Untitled Recipe",
+        ingredients: Array.isArray(recipe.ingredients) ? recipe.ingredients : [],
+        instructions: Array.isArray(recipe.instructions) ? recipe.instructions : [],
+        imageUrl: imageUrl,
+        preparationTime: recipe.preparationTime || "30 minutes",
+        servings: recipe.servings || 4,
+        nutritionalInfo: recipe.nutritionalInfo || {
+          calories: 300,
+          protein: 20,
+          carbs: 25,
+          fat: 10
+        }
+      };
+    });
     
     return validatedRecipes;
     
