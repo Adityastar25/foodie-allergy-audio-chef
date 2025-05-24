@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import Header from "@/components/Header";
@@ -20,8 +21,8 @@ const Index = () => {
       const response = await generateRecipe(request);
       
       if (response.success && response.recipes && response.recipes.length > 0) {
-        // Clear previous recipes and set new ones
-        setRecipes(response.recipes);
+        // Add new recipes to the beginning of the list
+        setRecipes(prev => [...response.recipes, ...prev]);
         setCurrentPage(1); // Reset to first page when new recipes are generated
         
         toast({
@@ -59,8 +60,6 @@ const Index = () => {
       
       <main className="container mx-auto px-4 py-6 flex-grow">
         <div className="max-w-6xl mx-auto">
-          
-          
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4">Create Your Recipe</h2>
             <RecipeForm onSubmit={handleGenerateRecipe} isLoading={isLoading} />
