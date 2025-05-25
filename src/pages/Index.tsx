@@ -103,7 +103,7 @@ const Index = () => {
       
       <footer className="bg-white py-4 border-t">
         <div className="container mx-auto px-4 text-center text-gray-500 text-sm">
-          © {new Date().getFullYear()} Recipe Generator. Powered by Gemini AI
+          © {new Date().getFullYear()} Chef Ali Khan. Powered by Gemini AI
         </div>
       </footer>
     </div>
