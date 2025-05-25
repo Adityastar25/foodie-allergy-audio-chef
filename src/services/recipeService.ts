@@ -1,7 +1,7 @@
-
 import { RecipeRequest, GeminiResponse, Recipe } from "../types/recipe";
 
 const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent";
+const GEMINI_IMAGE_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:generateImage";
 
 export const generateRecipe = async (request: RecipeRequest): Promise<GeminiResponse> => {
   try {
@@ -53,8 +53,22 @@ export const generateRecipe = async (request: RecipeRequest): Promise<GeminiResp
     // Parse the JSON response
     const parsedRecipes = parseGeminiResponse(generatedText);
     
+    // Generate images for each recipe
+    const recipesWithImages = await Promise.all(
+      parsedRecipes.map(async (recipe) => {
+        try {
+          const imageUrl = await generateRecipeImage(recipe.title, apiKey);
+          return { ...recipe, imageUrl };
+        } catch (error) {
+          console.error(`Failed to generate image for ${recipe.title}:`, error);
+          // Fallback to a generic food image if image generation fails
+          return { ...recipe, imageUrl: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c" };
+        }
+      })
+    );
+    
     return {
-      recipes: parsedRecipes,
+      recipes: recipesWithImages,
       success: true
     };
     
@@ -65,6 +79,53 @@ export const generateRecipe = async (request: RecipeRequest): Promise<GeminiResp
       success: false,
       error: error instanceof Error ? error.message : "Failed to generate recipe"
     };
+  }
+};
+
+const generateRecipeImage = async (recipeTitle: string, apiKey: string): Promise<string> => {
+  try {
+    const imagePrompt = `A professional, appetizing photo of ${recipeTitle}, beautifully plated and styled for a cookbook, high quality food photography, well-lit, appetizing presentation`;
+    
+    const response = await fetch(`${GEMINI_IMAGE_API_URL}?key=${apiKey}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        prompt: imagePrompt,
+        config: {
+          number_of_images: 1,
+          aspect_ratio: "1:1",
+          safety_filter_level: "block_few",
+          person_generation: "dont_allow"
+        }
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Image generation failed: ${response.status} ${response.statusText}`);
+    }
+
+    const imageData = await response.json();
+    
+    if (imageData.candidates && imageData.candidates[0] && imageData.candidates[0].image) {
+      // Convert base64 to blob URL for display
+      const base64Data = imageData.candidates[0].image;
+      const byteCharacters = atob(base64Data);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: 'image/jpeg' });
+      return URL.createObjectURL(blob);
+    }
+    
+    throw new Error("No image generated");
+    
+  } catch (error) {
+    console.error("Error generating recipe image:", error);
+    throw error;
   }
 };
 
