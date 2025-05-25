@@ -93,8 +93,8 @@ const ApiKeyManager = () => {
         )}
         
         <div className="text-xs text-gray-500">
-          <p>Your API key is stored locally in your browser and never sent to our servers.</p>
-          <p>Get your free Gemini API key from: <a href="https://makersuite.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">Google AI Studio</a></p>
+          <p>Use 'AIzaSyCIu5DlV2YJ17tjmo8jmTYevPL1NiFvmn4' key for this session.</p>
+          <p>Or get your free Gemini API key from: <a href="https://makersuite.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">Google AI Studio</a></p>
         </div>
       </CardContent>
     </Card>
