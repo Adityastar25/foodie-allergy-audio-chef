@@ -55,14 +55,15 @@ export const generateRecipe = async (request: RecipeRequest): Promise<GeminiResp
     
     // Generate images for each recipe
     const recipesWithImages = await Promise.all(
-      parsedRecipes.map(async (recipe) => {
+      parsedRecipes.map(async (recipe, index) => {
         try {
           const imageUrl = await generateRecipeImage(recipe.title, apiKey);
           return { ...recipe, imageUrl };
         } catch (error) {
           console.error(`Failed to generate image for ${recipe.title}:`, error);
-          // Fallback to a generic food image if image generation fails
-          return { ...recipe, imageUrl: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c" };
+          // Use recipe-specific fallback images
+          const fallbackImage = getFallbackImageForRecipe(recipe.title, request.cuisineType, index);
+          return { ...recipe, imageUrl: fallbackImage };
         }
       })
     );
@@ -127,6 +128,67 @@ const generateRecipeImage = async (recipeTitle: string, apiKey: string): Promise
     console.error("Error generating recipe image:", error);
     throw error;
   }
+};
+
+const getFallbackImageForRecipe = (recipeTitle: string, cuisineType: string, index: number): string => {
+  const title = recipeTitle.toLowerCase();
+  
+  // Cuisine-specific fallbacks
+  const cuisineImages = {
+    japanese: [
+      "https://images.unsplash.com/photo-1617196034796-73dfa7b1fd56", // sushi
+      "https://images.unsplash.com/photo-1569718212165-3a8278d5f624", // ramen
+      "https://images.unsplash.com/photo-1563379091339-03246963d25a"  // teriyaki
+    ],
+    italian: [
+      "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38", // pizza
+      "https://images.unsplash.com/photo-1551183053-bf91a1d81141", // pasta
+      "https://images.unsplash.com/photo-1574894709920-11b28e7367e3"  // risotto
+    ],
+    mexican: [
+      "https://images.unsplash.com/photo-1565299585323-38174c19fe12", // tacos
+      "https://images.unsplash.com/photo-1551504734-5ee1c4a1479b", // burritos
+      "https://images.unsplash.com/photo-1568901346375-23c9450c58cd"  // nachos
+    ],
+    indian: [
+      "https://images.unsplash.com/photo-1585937421612-70a008356fbe", // curry
+      "https://images.unsplash.com/photo-1563379091339-03246963d25a", // biryani
+      "https://images.unsplash.com/photo-1574894709920-11b28e7367e3"  // dal
+    ],
+    chinese: [
+      "https://images.unsplash.com/photo-1525755662778-989d0524087e", // stir fry
+      "https://images.unsplash.com/photo-1603133872878-684f208fb84b", // noodles
+      "https://images.unsplash.com/photo-1617196034796-73dfa7b1fd56"  // dumplings
+    ],
+    thai: [
+      "https://images.unsplash.com/photo-1559314809-0f31657def5e", // pad thai
+      "https://images.unsplash.com/photo-1574894709920-11b28e7367e3", // curry
+      "https://images.unsplash.com/photo-1569718212165-3a8278d5f624"  // soup
+    ]
+  };
+
+  // Get cuisine-specific images or default to generic food images
+  const cuisineSpecificImages = cuisineImages[cuisineType.toLowerCase()] || [
+    "https://images.unsplash.com/photo-1546069901-ba9599a7e63c", // generic food 1
+    "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38", // generic food 2
+    "https://images.unsplash.com/photo-1574894709920-11b28e7367e3"  // generic food 3
+  ];
+
+  // Use different images based on recipe characteristics
+  if (title.includes('sushi') || title.includes('roll')) {
+    return "https://images.unsplash.com/photo-1617196034796-73dfa7b1fd56";
+  } else if (title.includes('stir') || title.includes('fry')) {
+    return "https://images.unsplash.com/photo-1525755662778-989d0524087e";
+  } else if (title.includes('bowl') || title.includes('rice')) {
+    return "https://images.unsplash.com/photo-1569718212165-3a8278d5f624";
+  } else if (title.includes('soup') || title.includes('broth')) {
+    return "https://images.unsplash.com/photo-1574894709920-11b28e7367e3";
+  } else if (title.includes('salad') || title.includes('slaw')) {
+    return "https://images.unsplash.com/photo-1512621776951-a57141f2eefd";
+  }
+
+  // Return cuisine-specific image based on index to ensure variety
+  return cuisineSpecificImages[index % cuisineSpecificImages.length];
 };
 
 const generatePrompt = (request: RecipeRequest): string => {
